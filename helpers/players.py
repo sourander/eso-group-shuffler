@@ -1,4 +1,5 @@
 import random
+import itertools
 import pandas as pd
 from .team_names import potential_team_names
 
@@ -12,11 +13,17 @@ class Player:
         self.roles.append('heal') if can_heal else None
         self.roles.append('dd') if can_dd else None
 
-        # Has been nominated to roster
-        self.is_in_roster = False
+        # This role has been chosen
+        self.chosen_role = None
 
-    def reserve(self):
-        self.is_in_roster = True
+        # Belongs to a group named
+        self.group_membership = None
+
+    def reserve(self, role):
+        self.chosen_role = role
+
+    def set_group(self, groupname):
+        self.group_membership = groupname
 
     def __str__(self):
         return self.name
@@ -33,12 +40,15 @@ class Group:
         self.healers = []
 
     def add_tank(self, p: Player):
+        p.set_group(self.name)
         self.tanks.append(p)
 
     def add_dd(self, p: Player):
+        p.set_group(self.name)
         self.deedees.append(p)
 
     def add_healer(self, p: Player):
+        p.set_group(self.name)
         self.healers.append(p)
 
     def __str__(self):
@@ -58,27 +68,24 @@ class Group:
 
 
 class PlayerPool:
-    def __init__(self, file_path: str, seed=None, prefer_resignation_order=True, n_groups=None):
+    def __init__(self, file_path: str, prefer_resignation_order=False, seed=None, n_groups=None):
 
         # Set static seed
+        self.prefer_resignation_order = prefer_resignation_order
         random.seed(seed)
 
         # Containers for Players and Groups
         self.players = []
-        self.tanks = []
-        self.deedees = []
-        self.healers = []
         self.groups = []
 
+        # Populate players list
         self.add_players_from_excel(file_path)
-        if not prefer_resignation_order:
-            random.shuffle(self.players)
 
-        # Find out how many groups to create
-        self.n_groups_to_create = self.define_max_group_count() if not n_groups else n_groups
+        # Set player roles up to n groups
+        self.n_groups_to_create = self.set_player_roles()
 
-        # Populate Tanks, Deedees and Healers
-        self.populate_all_ranks()
+        # Form players into groups
+        self.form_groups()
 
     def add_players_from_excel(self, f):
         # Read the Config Excel file
@@ -90,99 +97,74 @@ class PlayerPool:
 
             self.add_player(p)
 
-    def pop_first_if_exist(self, input_list, default_value="N/A"):
-        try:
-            return input_list.pop()
-        except IndexError:
-            return Player(default_value, False, False, False)
-
     def form_groups(self):
 
         # Shuffle Team Names
         random.shuffle(potential_team_names)
 
+        # Shuffle player list before picking by order.
+        if not self.prefer_resignation_order:
+            random.shuffle(self.players)
+
+        tanks = self.get_players('tank')
+        heals = self.get_players('heal')
+        deedees = self.get_players('dd')
+
         for i in range(self.n_groups_to_create):
-            t = self.pop_first_if_exist(self.tanks)
-            d1 = self.pop_first_if_exist(self.deedees)
-            d2 = self.pop_first_if_exist(self.deedees)
-            h = self.pop_first_if_exist(self.healers)
-
-            n = potential_team_names.pop(0)
-
-            g = Group(name=n)
-            g.add_tank(t)
-            g.add_dd(d1)
-            g.add_dd(d2)
-            g.add_healer(h)
+            g = Group(name=potential_team_names.pop(0))
+            g.add_tank(tanks.pop(0))
+            g.add_dd(deedees.pop(0))
+            g.add_dd(deedees.pop(0))
+            g.add_healer(heals.pop(0))
 
             self.groups.append(g)
-
-    def shuffle_players(self):
-        """Shuffle the chosen Tanks, Healers and DDs
-        """
-        random.shuffle(self.tanks)
-        random.shuffle(self.deedees)
-        random.shuffle(self.healers)
 
     def add_player(self, p: Player):
         # Set of index and Player object
         self.players.append(p)
 
     def get_players(self, role=None):
-        filtered_members = [p for p in self.players if role in p.roles and not p.is_in_roster]
+        filtered_members = [p for p in self.players if p.chosen_role == role and not p.group_membership]
 
         return filtered_members
 
     def list_leftovers(self):
-        filtered_members = [str(p) for p in self.players if not p.is_in_roster]
+        filtered_members = [str(p) for p in self.players if not p.group_membership]
 
         p = ", ".join(filtered_members)
         print("[INFO] The leftovers are: ", p)
 
-    def define_max_group_count(self) -> int:
-        """Estimate how many groups can be formed using the Players pool.
-        """
-        # Fetch All Players
-        ts = self.get_players(role='tank')
-        dds = self.get_players(role='dd')
-        hls = self.get_players(role='heal')
+    def set_player_roles(self):
+        # Get roles (in order)
+        player_roles = [p.roles for p in self.players]
 
-        # Turn to set.
-        all_available_players = set(ts + dds + hls)
-        all_available_tanks_healers = set(ts + hls)
+        # Product
+        all_role_combinations = list(itertools.product(*player_roles))
 
-        # MAXIMUMS
-        n_groups_of_four = len(all_available_players) // 4
-        n_tank_healer_pairs = len(all_available_tanks_healers) // 2
-        n_tanks = len(ts)
-        n_heals = len(hls)
-        n_deedee_pairs = len(dds) // 2
+        # Container for search results
+        all_role_combination_group_sizes = []
 
-        print(
-            f"[DEBUG] Choosing minimum between {n_groups_of_four} and and {n_tank_healer_pairs} "
-            f"and {n_tanks} and {n_heals} and {n_deedee_pairs}")
+        for c in all_role_combinations:
+            # Check how many groups we could create with this combination
+            x = min(c.count('tank'), c.count('heal'), c.count('dd') // 2)
 
-        return min(n_groups_of_four, n_tank_healer_pairs, n_tanks, n_heals, n_deedee_pairs)
+            all_role_combination_group_sizes.append(x)
 
-    def populate(self, role, n):
-        # List all members with the wanted role
-        nominees = self.get_players(role=role)
+        # This is the maximum size group we can create
+        n_groups = max(all_role_combination_group_sizes)
 
-        # Sort by length (n_roles) to prefer those who are suitable to ONLY this role
-        nominees = sorted(nominees, key=len)
+        # Container for search results
+        potential_roles = []
 
-        # Pick the n Players
-        chosen = nominees[:n]
+        for x, y in zip(all_role_combinations, all_role_combination_group_sizes):
+            if y == n_groups:
+                potential_roles.append(x)
 
-        # Mark Player as reserved. It is no longer available for Tanks, Healers or DDs.
-        for c in chosen:
-            c.reserve()
+        # Choose list of roles
+        chosen_roles = random.choice(potential_roles)
 
-        return chosen
+        for player, role in zip(self.players, chosen_roles):
+            # Tell Player that it is in roster
+            player.reserve(role)
 
-    def populate_all_ranks(self):
-        n = self.n_groups_to_create
-
-        self.tanks = self.populate('tank', n)
-        self.healers = self.populate('heal', n)
-        self.deedees = self.populate('dd', n * 2)
+        return n_groups

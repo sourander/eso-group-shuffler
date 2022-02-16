@@ -1,5 +1,8 @@
-# PyCharm stuff
+# PyCharm and Python temp stuff
 .idea/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
 
 # Ignore files in Data directory except the examples
 /data/*
