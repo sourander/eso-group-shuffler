@@ -90,16 +90,22 @@ class PlayerPool:
 
             self.add_player(p)
 
+    def pop_first_if_exist(self, input_list, default_value="N/A"):
+        try:
+            return input_list.pop()
+        except IndexError:
+            return Player(default_value, False, False, False)
+
     def form_groups(self):
 
         # Shuffle Team Names
         random.shuffle(potential_team_names)
 
         for i in range(self.n_groups_to_create):
-            t = self.tanks.pop()
-            d1 = self.deedees.pop()
-            d2 = self.deedees.pop()
-            h = self.healers.pop()
+            t = self.pop_first_if_exist(self.tanks)
+            d1 = self.pop_first_if_exist(self.deedees)
+            d2 = self.pop_first_if_exist(self.deedees)
+            h = self.pop_first_if_exist(self.healers)
 
             n = potential_team_names.pop(0)
 

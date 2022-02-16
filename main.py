@@ -1,11 +1,11 @@
 from helpers.players import PlayerPool
 
 # Settings
-MAGIC_NUMBER = 123
+MAGIC_NUMBER = 666
 FILE = 'data/20220218.xlsx'
 
 # Instantiate the rosters of: Tanks, Healers and DDs
-pool = PlayerPool(FILE, seed=MAGIC_NUMBER, prefer_resignation_order=True)
+pool = PlayerPool(FILE, seed=MAGIC_NUMBER)
 
 # Check who were left out Tanks, Healers and DDs rosters:
 pool.list_leftovers()
