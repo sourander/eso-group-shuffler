@@ -1,0 +1,6 @@
+# PyCharm stuff
+.idea/
+
+# Ignore files in Data directory except the examples
+/data/*
+!data/example.xlsx
