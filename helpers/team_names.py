@@ -10,5 +10,10 @@ potential_team_names = [
     'America',
     'Addams Family',
     'RNG Believers',
-    'ERP Believers'
+    'ERP Believers',
+    'Stuck in Loading Screen',
+    'Turbolampaat',
+    'Mieshuorat',
+    'Lusty Maids',
+    'Aktivistinistit'
 ]
