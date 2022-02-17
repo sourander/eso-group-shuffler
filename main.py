@@ -1,7 +1,7 @@
 from helpers.players import PlayerPool
 
 # Settings
-MAGIC_NUMBER = 123
+MAGIC_NUMBER = None
 FILE = 'data/20220218.xlsx'
 
 # Instantiate the rosters of: Tanks, Healers and DDs

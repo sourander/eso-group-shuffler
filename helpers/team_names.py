@@ -15,5 +15,8 @@ potential_team_names = [
     'Turbolampaat',
     'Mieshuorat',
     'Lusty Maids',
-    'Aktivistinistit'
+    'Aktivistinistit',
+    'Kylähullut',
+    'Yhteen Kirjoituksen Osaajat',
+    'Molag\'s Balls'
 ]

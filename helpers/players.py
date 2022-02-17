@@ -167,4 +167,8 @@ class PlayerPool:
             # Tell Player that it is in roster
             player.reserve(role)
 
+        # Verbose
+        print(f"[INFO] Out of {len(player_roles)} players, we can create {len(all_role_combinations)} different role combinations.")
+        print(f"[INFO] {len(potential_roles)}/{len(all_role_combinations)} combinations allow forming a group of {n_groups} including all required roles.")
+
         return n_groups

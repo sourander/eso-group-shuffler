@@ -2,15 +2,16 @@
 
 This is a helper tool for organizing Elder Scrolls Online guild group dungeon events. In those events, groups consisting of 4 players will enter a dungeon. That group should always have 1 tank, 2 DDs and 1 Healer.
 
-A single player can master multiple roles, so they may register to the event using a fluid role. Example below:
-
-* Player A: tank/heal
-* Player B: tank/dd/heal
-* Player C: dd
-* Player Z: Any combination of tank/dd/heal
-
 ## Usage
-Write the registered persons and their roles to `data/<date>.xlsx` using Excel or similar. Use the `data/example.xlsx` as a template.
+Write the registered persons and their roles to `data/<date>.xlsx` using Excel or similar. Use the `data/example.xlsx` as a template. The file should look like the one below:
+
+| Name     | Tank | Healer | DD   |
+|----------|------|--------|------|
+| Player A | TRUE | FALSE  | TRUE |
+| Player B | TRUE | FALSE  | TRUE |
+| Player C | TRUE | TRUE   | TRUE |
+| ...      | ...  | ...    | ...  |
+| Player Z | TRUE | TRUE   | TRUE |
 
 After this, modify the settings in the `main.py` (code snippet shown below). The magic number will be used as the seed of randomness when shuffling the group. Depending how you choose the magic number, it can be used for validating the randomization process.
 ```python
@@ -28,4 +29,14 @@ The PlayerPool does not shuffle the players before adding them to the tank/dd/he
 ```python
 # Instantiate the rosters of: Tanks, Healers and DDs
 pool = PlayerPool(FILE, seed=MAGIC_NUMBER, prefer_resignation_order=False)
+```
+
+The tool prints out the group compositions to stdout in format as:
+
+```text
+Team <randomized_team_name>
+==========
+Tank: <player_name>
+DDs: <player_name>, <player_name>
+Healer: <player_name>
 ```
