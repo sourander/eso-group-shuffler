@@ -103,7 +103,19 @@ class PlayerPool:
         random.shuffle(potential_team_names)
 
         # Shuffle player list before picking by order.
-        if not self.prefer_resignation_order:
+        if self.prefer_resignation_order:
+            # Split players into first n and others
+            n = self.n_groups_to_create * 4
+            a = self.players[:n]
+            b = self.players[n:]
+
+            # Shuffle a and b
+            random.shuffle(a)
+            random.shuffle(b)
+
+            # Merge shuffled a and b into new players roster
+            self.players = a + b
+        elif not self.prefer_resignation_order:
             random.shuffle(self.players)
 
         tanks = self.get_players('tank')
