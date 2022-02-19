@@ -1,6 +1,8 @@
 import random
 import itertools
 import pandas as pd
+from functools import reduce
+from operator import mul
 from .team_names import potential_team_names
 
 
@@ -27,9 +29,6 @@ class Player:
 
     def __str__(self):
         return self.name
-
-    def __len__(self):
-        return len(self.roles)
 
 
 class Group:
@@ -82,12 +81,18 @@ class PlayerPool:
         self.add_players_from_excel(file_path)
 
         # Set player roles up to n groups
-        self.n_groups_to_create = self.set_player_roles()
+        self.n_groups_to_create = self.determine_group_number()
+
+        # Shuffle players
+        self.shuffle_players()
+
+        # Set player roles
+        self.set_player_roles()
 
         # Form players into groups
         self.form_groups()
 
-    def add_players_from_excel(self, f):
+    def add_players_from_excel(self, f: str):
         # Read the Config Excel file
         df = pd.read_excel(f)
 
@@ -97,12 +102,8 @@ class PlayerPool:
 
             self.add_player(p)
 
-    def form_groups(self):
-
-        # Shuffle Team Names
-        random.shuffle(potential_team_names)
-
-        # Shuffle player list before picking by order.
+    def shuffle_players(self):
+        # Shuffle player list
         if self.prefer_resignation_order:
             # Split players into first n and others
             n = self.n_groups_to_create * 4
@@ -117,6 +118,11 @@ class PlayerPool:
             self.players = a + b
         elif not self.prefer_resignation_order:
             random.shuffle(self.players)
+
+    def form_groups(self):
+
+        # Shuffle Team Names
+        random.shuffle(potential_team_names)
 
         tanks = self.get_players('tank')
         heals = self.get_players('heal')
@@ -146,31 +152,55 @@ class PlayerPool:
         p = ", ".join(filtered_members)
         print("[INFO] The leftovers are: ", p)
 
-    def set_player_roles(self):
-        # Get roles (in order)
+    def determine_group_number(self, cmax_early_stopping=10 ** 7):
+        # Find out how many role combinations are possible
+        n_combinations = reduce(mul, [len(p.roles) or 1 for p in self.players])
+
+        # List of lists. Each list element contains one player's roles as strings.
         player_roles = [p.roles for p in self.players]
 
-        # Product
-        all_role_combinations = list(itertools.product(*player_roles))
+        # Store largest candidate found. Start value.
+        n_groups = 0
 
-        # Container for search results
-        all_role_combination_group_sizes = []
+        for i, c in enumerate(itertools.product(*player_roles)):
 
-        for c in all_role_combinations:
-            # Check how many groups we could create with this combination
-            x = min(c.count('tank'), c.count('heal'), c.count('dd') // 2)
+            # Check how many groups could we create of this role combination
+            c_candidate = min(c.count('tank'), c.count('heal'), c.count('dd') // 2)
 
-            all_role_combination_group_sizes.append(x)
+            # Store if highest known
+            if n_groups < c_candidate:
+                n_groups = c_candidate
 
-        # This is the maximum size group we can create
-        n_groups = max(all_role_combination_group_sizes)
+            # Early stopping.
+            if i > cmax_early_stopping:
+                break
 
-        # Container for search results
+            # Verbose
+            print(f"[INFO] Out of {len(player_roles)} players, "
+                  f"we can create {n_combinations} different role combinations.")
+
+        return n_groups
+
+    def set_player_roles(self, role_store_early_stopping=10 ** 5):
+
+        # Container for potential role combinations
         potential_roles = []
 
-        for x, y in zip(all_role_combinations, all_role_combination_group_sizes):
-            if y == n_groups:
-                potential_roles.append(x)
+        # Player roles.
+        player_roles = [p.roles for p in self.players]
+
+        for i, c in enumerate(itertools.product(*player_roles)):
+
+            # Check how many groups could we create of this role combination
+            c_candidate = min(c.count('tank'), c.count('heal'), c.count('dd') // 2)
+
+            # Keep condition
+            if c_candidate == self.n_groups_to_create:
+                potential_roles.append(c)
+
+            # Early stopping
+            if len(potential_roles) > role_store_early_stopping:
+                break
 
         # Choose list of roles
         chosen_roles = random.choice(potential_roles)
@@ -179,8 +209,4 @@ class PlayerPool:
             # Tell Player that it is in roster
             player.reserve(role)
 
-        # Verbose
-        print(f"[INFO] Out of {len(player_roles)} players, we can create {len(all_role_combinations)} different role combinations.")
-        print(f"[INFO] {len(potential_roles)}/{len(all_role_combinations)} combinations allow forming a group of {n_groups} including all required roles.")
 
-        return n_groups
