@@ -162,6 +162,10 @@ class PlayerPool:
         # Store largest candidate found. Start value.
         n_groups = 0
 
+        # Verbose
+        print(f"[INFO] Out of {len(player_roles)} players, "
+              f"we can create {n_combinations} different role combinations.")
+
         for i, c in enumerate(itertools.product(*player_roles)):
 
             # Check how many groups could we create of this role combination
@@ -175,9 +179,7 @@ class PlayerPool:
             if i > cmax_early_stopping:
                 break
 
-            # Verbose
-            print(f"[INFO] Out of {len(player_roles)} players, "
-                  f"we can create {n_combinations} different role combinations.")
+
 
         return n_groups
 
